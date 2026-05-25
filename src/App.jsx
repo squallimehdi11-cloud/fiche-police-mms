@@ -319,6 +319,9 @@ export default function FichePolice() {
               <select value={form.statut_marital} onChange={e => set("statut_marital", e.target.value)} style={{ ...selectStyle, ...err("statut_marital") }}>
                 <option value="">— Sélectionner —</option>
                 <option>Marié(e)</option>
+                <div style={{ marginTop: "12px", padding: "12px 16px", background: "#c9a84c08", border: "1px solid #c9a84c33", borderRadius: "4px", fontSize: "12px", color: "#c9a84c99", lineHeight: 1.7 }}>
+  📋 Merci d'avoir votre acte de mariage original avec vous à l'arrivée — il sera vérifié par notre équipe. — Please bring your original marriage certificate upon arrival, it will be verified by our team.
+</div>
                 <option>Famille / Amis</option>
                 <option>Célibataire</option>
                 <option>Autre</option>
