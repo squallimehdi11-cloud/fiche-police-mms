@@ -122,6 +122,8 @@ export default function FichePolice() {
     email: "", telephone: "",
     consent_cndp: false,
     consent_rental: false,
+    statut_marital: "",
+    acte_mariage: "",
   });
   const [errors, setErrors] = useState({});
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -140,6 +142,11 @@ export default function FichePolice() {
     if (!form.consent_rental) e.consent_rental = true;
     if (!signature) e.signature = true;
     if (!signatureRental) e.signatureRental = true;
+    const isMoroccan = form.nationalite === "Marocaine";
+    const isCouple = parseInt(form.nb_personnes) >= 2;
+    if (isMoroccan && isCouple && !form.statut_marital) e.statut_marital = true;
+    if (isMoroccan && isCouple && form.statut_marital === "Célibataire") e.statut_marital_blocked = true;
+    if (isMoroccan && isCouple && form.statut_marital === "Marié(e)" && !form.acte_mariage.trim()) e.acte_mariage = true;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -173,6 +180,8 @@ export default function FichePolice() {
           nb_personnes: form.nb_personnes,
           email: form.email,
           telephone: form.telephone,
+          statut_marital: form.statut_marital || "N/A",
+          acte_mariage: form.acte_mariage || "N/A",
           name: `${form.prenom} ${form.nom}`,
           message: `Fiche police + contrat signés le ${new Date().toLocaleDateString("fr-MA")}`,
         },
@@ -195,8 +204,8 @@ export default function FichePolice() {
           <h2 style={{ color: "#c9a84c", fontSize: "22px", letterSpacing: "4px", textTransform: "uppercase", marginBottom: "12px", fontWeight: 400 }}>Documents Enregistrés</h2>
           <p style={{ color: "#f0e6c888", fontSize: "15px", lineHeight: 1.8 }}>Merci, <strong style={{ color: "#f0e6c8" }}>{form.prenom} {form.nom}</strong>.</p>
           <p style={{ color: "#f0e6c866", fontSize: "13px", lineHeight: 1.8 }}>
-            Votre fiche de police et votre contrat de location ont été enregistrés et transmis à Medina Moon Stays.<br/>
-            <span style={{ fontSize: "11px" }}>Your police registration form and rental agreement have been recorded and sent to Medina Moon Stays.</span>
+            Votre fiche de police et votre contrat de location ont été enregistrés.<br/>
+            <span style={{ fontSize: "11px" }}>Your police registration form and rental agreement have been recorded.</span>
           </p>
           <div style={{ marginTop: "24px", padding: "16px", border: "1px solid #c9a84c22", borderRadius: "6px", background: "#c9a84c08" }}>
             <p style={{ color: "#c9a84c", fontSize: "13px", letterSpacing: "1px", margin: 0 }}>{form.property}</p>
@@ -231,7 +240,7 @@ export default function FichePolice() {
       </div>
 
       <div style={{ margin: "20px 32px", padding: "14px 18px", background: "#c9a84c08", border: "1px solid #c9a84c22", borderLeft: "3px solid #c9a84c", borderRadius: "4px", fontSize: "11px", color: "#c9a84c99", lineHeight: 1.8 }}>
-        En application de la loi n°80-14 et du décret n°2.23.441, tout exploitant est tenu de faire remplir cette fiche. Données traitées conformément à la loi n°09-08 CNDP. — In accordance with Moroccan Law no. 80-14, all guests must complete this registration form and sign the rental agreement.
+        En application de la loi n°80-14 et du décret n°2.23.441, tout exploitant est tenu de faire remplir cette fiche. — In accordance with Moroccan Law no. 80-14, all guests must complete this form and sign the rental agreement.
       </div>
 
       <div style={{ padding: "0 32px 40px" }}>
@@ -300,6 +309,33 @@ export default function FichePolice() {
           <Field label="Téléphone" labelEn="Phone"><input value={form.telephone} onChange={e => set("telephone", e.target.value)} style={inputStyle} placeholder="+33 6 12 34 56 78" /></Field>
         </div>
 
+        {form.nationalite === "Marocaine" && parseInt(form.nb_personnes) >= 2 && (
+          <div style={{ margin: "24px 0", padding: "20px", background: "#c9a84c08", border: `1px solid ${errors.statut_marital || errors.statut_marital_blocked ? "#c9a84c88" : "#c9a84c33"}`, borderRadius: "6px" }}>
+            <div style={{ fontSize: "11px", letterSpacing: "3px", color: "#c9a84c", textTransform: "uppercase", marginBottom: "16px" }}>◈ Statut marital / Marital Status</div>
+            <div style={{ fontSize: "12px", color: "#f0e6c877", marginBottom: "16px", lineHeight: 1.7 }}>
+              Conformément à la réglementation marocaine, les couples non mariés ne sont pas acceptés. — Unmarried couples are not accepted per Moroccan regulations.
+            </div>
+            <Field label="Statut marital" labelEn="Marital status" required>
+              <select value={form.statut_marital} onChange={e => set("statut_marital", e.target.value)} style={{ ...selectStyle, ...err("statut_marital") }}>
+                <option value="">— Sélectionner —</option>
+                <option>Marié(e)</option>
+                <option>Célibataire</option>
+                <option>Autre</option>
+              </select>
+            </Field>
+            {form.statut_marital === "Célibataire" && (
+              <div style={{ padding: "14px 18px", background: "#ff000011", border: "1px solid #ff000044", borderRadius: "4px", fontSize: "12px", color: "#ff6666", lineHeight: 1.7 }}>
+                ⚠ Les couples non mariés ne sont pas acceptés conformément à la loi marocaine. Votre réservation pourra être annulée à l'arrivée sans remboursement. — Unmarried couples are not accepted. Your booking may be cancelled upon arrival without refund.
+              </div>
+            )}
+            {form.statut_marital === "Marié(e)" && (
+              <Field label="Numéro acte de mariage" labelEn="Marriage certificate number" required>
+                <input value={form.acte_mariage} onChange={e => set("acte_mariage", e.target.value)} style={{ ...inputStyle, ...err("acte_mariage") }} placeholder="Ex: 1234/2024" />
+              </Field>
+            )}
+          </div>
+        )}
+
         <div style={{ margin: "24px 0", padding: "16px 20px", background: "#c9a84c06", border: `1px solid ${errors.consent_cndp ? "#c9a84c88" : "#c9a84c22"}`, borderRadius: "4px" }}>
           <label style={{ display: "flex", gap: "14px", alignItems: "flex-start", cursor: "pointer" }}>
             <input type="checkbox" checked={form.consent_cndp} onChange={e => set("consent_cndp", e.target.checked)} style={{ marginTop: "3px", accentColor: "#c9a84c", width: "16px", height: "16px", flexShrink: 0 }} />
@@ -327,7 +363,7 @@ export default function FichePolice() {
           <div>• Capacité maximale respectée — Maximum occupancy must be respected</div>
           <div>• Pas de fêtes ni d'événements sans autorisation écrite — No parties without prior written approval</div>
           <div>• Non-fumeur à l'intérieur — No smoking inside the property</div>
-          <div>• Silence entre 22h00 et 08h00 — Quiet hours 10 PM – 8 AM</div>
+          <div>• Silence entre 22h00 et 08h00 — Quiet hours 10 PM - 8 AM</div>
           <div>• Logement rendu propre à l'état initial — Property returned in clean condition</div>
           <div>• Caution remboursée sous 48h après départ si aucun dommage — Security deposit returned within 48h if no damage</div>
           <div>• En cas de dégradation, le locataire est responsable des frais — Guest is liable for any damages</div>
@@ -378,4 +414,3 @@ export default function FichePolice() {
     </div>
   );
 }
-
