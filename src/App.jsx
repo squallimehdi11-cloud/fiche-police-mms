@@ -313,12 +313,13 @@ export default function FichePolice() {
           <div style={{ margin: "24px 0", padding: "20px", background: "#c9a84c08", border: `1px solid ${errors.statut_marital || errors.statut_marital_blocked ? "#c9a84c88" : "#c9a84c33"}`, borderRadius: "6px" }}>
             <div style={{ fontSize: "11px", letterSpacing: "3px", color: "#c9a84c", textTransform: "uppercase", marginBottom: "16px" }}>◈ Statut marital / Marital Status</div>
             <div style={{ fontSize: "12px", color: "#f0e6c877", marginBottom: "16px", lineHeight: 1.7 }}>
-              Conformément à la réglementation marocaine, les couples non mariés ne sont pas acceptés. — Unmarried couples are not accepted per Moroccan regulations.
+              Pour les ressortissants marocains, les couples non mariés ne sont pas acceptés conformément à la loi marocaine. Merci de préciser votre statut. — For Moroccan nationals, unmarried couples are not accepted under Moroccan law. Please specify your status..
             </div>
             <Field label="Statut marital" labelEn="Marital status" required>
               <select value={form.statut_marital} onChange={e => set("statut_marital", e.target.value)} style={{ ...selectStyle, ...err("statut_marital") }}>
                 <option value="">— Sélectionner —</option>
                 <option>Marié(e)</option>
+                <option>Famille / Amis</option>
                 <option>Célibataire</option>
                 <option>Autre</option>
               </select>
