@@ -1,4 +1,9 @@
 import { useState, useRef, useEffect } from "react";
+import emailjs from "@emailjs/browser";
+
+const EMAILJS_SERVICE_ID = "service_3lpshw8";
+const EMAILJS_TEMPLATE_ID = "flgrgnn";
+const EMAILJS_PUBLIC_KEY = "USFzBaZJ2xx3Nog9u";
 
 const NATIONALITIES = [
   "Marocaine", "Française", "Espagnole", "Italienne", "Britannique", "Américaine",
@@ -8,7 +13,7 @@ const NATIONALITIES = [
 
 const DOC_TYPES = ["Passeport", "Carte d'identité nationale (CIN)", "Carte de résident", "Autre"];
 
-function SignaturePad({ onSign, signed }) {
+function SignaturePad({ onSign, signed, label = "Signez ici / Sign here" }) {
   const canvasRef = useRef(null);
   const drawing = useRef(false);
   const lastPos = useRef(null);
@@ -62,7 +67,7 @@ function SignaturePad({ onSign, signed }) {
       />
       {!signed && (
         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", color: "#c9a84c44", fontSize: "13px", pointerEvents: "none", fontFamily: "'Cormorant Garamond', serif", letterSpacing: "2px" }}>
-          Signez ici / Sign here
+          {label}
         </div>
       )}
       <button onClick={clear} style={{ marginTop: "8px", background: "transparent", border: "1px solid #c9a84c33", color: "#c9a84c88", padding: "4px 12px", borderRadius: "3px", fontSize: "11px", cursor: "pointer", letterSpacing: "1px" }}>
@@ -99,7 +104,10 @@ function SectionTitle({ children }) {
 export default function FichePolice() {
   const today = new Date().toISOString().split("T")[0];
   const [signature, setSignature] = useState(null);
+  const [signatureRental, setSignatureRental] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(false);
   const urlParams = new URLSearchParams(window.location.search);
   const propertyFromUrl = urlParams.get("property") || "";
 
@@ -113,6 +121,7 @@ export default function FichePolice() {
     motif_sejour: "", nb_personnes: "1",
     email: "", telephone: "",
     consent_cndp: false,
+    consent_rental: false,
   });
   const [errors, setErrors] = useState({});
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -128,28 +137,80 @@ export default function FichePolice() {
     if (!form.date_arrivee) e.date_arrivee = true;
     if (!form.date_depart) e.date_depart = true;
     if (!form.consent_cndp) e.consent_cndp = true;
+    if (!form.consent_rental) e.consent_rental = true;
     if (!signature) e.signature = true;
+    if (!signatureRental) e.signatureRental = true;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const err = (k) => errors[k] ? { borderColor: "#c9a84c88" } : {};
 
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    setSending(true);
+    setSendError(false);
+    try {
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        {
+          property: form.property,
+          nom: form.nom,
+          prenom: form.prenom,
+          date_naissance: form.date_naissance,
+          lieu_naissance: form.lieu_naissance,
+          nationalite: form.nationalite,
+          doc_type: form.doc_type,
+          doc_numero: form.doc_numero,
+          doc_delivre_par: form.doc_delivre_par,
+          doc_date_expiration: form.doc_date_expiration,
+          adresse_domicile: form.adresse_domicile,
+          pays_residence: form.pays_residence,
+          date_arrivee: form.date_arrivee,
+          date_depart: form.date_depart,
+          motif_sejour: form.motif_sejour,
+          nb_personnes: form.nb_personnes,
+          email: form.email,
+          telephone: form.telephone,
+          name: `${form.prenom} ${form.nom}`,
+          message: `Fiche police + contrat signés le ${new Date().toLocaleDateString("fr-MA")}`,
+        },
+        EMAILJS_PUBLIC_KEY
+      );
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+      setSendError(true);
+    } finally {
+      setSending(false);
+    }
+  };
+
   if (submitted) {
     return (
       <div style={{ minHeight: "100vh", background: "#080807", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond', serif", padding: "20px" }}>
         <div style={{ textAlign: "center", maxWidth: "480px" }}>
           <div style={{ fontSize: "48px", marginBottom: "24px", color: "#c9a84c" }}>✓</div>
-          <h2 style={{ color: "#c9a84c", fontSize: "22px", letterSpacing: "4px", textTransform: "uppercase", marginBottom: "12px", fontWeight: 400 }}>Fiche Enregistrée</h2>
+          <h2 style={{ color: "#c9a84c", fontSize: "22px", letterSpacing: "4px", textTransform: "uppercase", marginBottom: "12px", fontWeight: 400 }}>Documents Enregistrés</h2>
           <p style={{ color: "#f0e6c888", fontSize: "15px", lineHeight: 1.8 }}>Merci, <strong style={{ color: "#f0e6c8" }}>{form.prenom} {form.nom}</strong>.</p>
-          <p style={{ color: "#f0e6c866", fontSize: "13px", lineHeight: 1.8 }}>Votre fiche a été enregistrée conformément à la loi n°80-14 et à la loi n°09-08 CNDP.<br/><span style={{fontSize:"11px"}}>Your form has been registered in compliance with Moroccan law.</span></p>
+          <p style={{ color: "#f0e6c866", fontSize: "13px", lineHeight: 1.8 }}>
+            Votre fiche de police et votre contrat de location ont été enregistrés et transmis à Medina Moon Stays.<br/>
+            <span style={{ fontSize: "11px" }}>Your police registration form and rental agreement have been recorded and sent to Medina Moon Stays.</span>
+          </p>
           <div style={{ marginTop: "24px", padding: "16px", border: "1px solid #c9a84c22", borderRadius: "6px", background: "#c9a84c08" }}>
             <p style={{ color: "#c9a84c", fontSize: "13px", letterSpacing: "1px", margin: 0 }}>{form.property}</p>
             <p style={{ color: "#f0e6c866", fontSize: "12px", margin: "4px 0 0" }}>{form.date_arrivee} → {form.date_depart}</p>
           </div>
-          <div style={{ marginTop: "32px" }}>
-            <img src={signature} alt="signature" style={{ maxWidth: "200px", opacity: 0.8 }} />
-            <p style={{ color: "#c9a84c44", fontSize: "11px", letterSpacing: "2px", marginTop: "8px" }}>SIGNATURE ENREGISTRÉE</p>
+          <div style={{ marginTop: "32px", display: "flex", justifyContent: "center", gap: "32px" }}>
+            <div>
+              <img src={signature} alt="signature fiche" style={{ maxWidth: "160px", opacity: 0.8 }} />
+              <p style={{ color: "#c9a84c44", fontSize: "10px", letterSpacing: "2px", marginTop: "6px" }}>FICHE DE POLICE</p>
+            </div>
+            <div>
+              <img src={signatureRental} alt="signature contrat" style={{ maxWidth: "160px", opacity: 0.8 }} />
+              <p style={{ color: "#c9a84c44", fontSize: "10px", letterSpacing: "2px", marginTop: "6px" }}>CONTRAT DE LOCATION</p>
+            </div>
           </div>
         </div>
       </div>
@@ -161,8 +222,8 @@ export default function FichePolice() {
       <div style={{ borderBottom: "1px solid #c9a84c22", padding: "28px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#0a0907" }}>
         <div>
           <div style={{ fontSize: "11px", letterSpacing: "4px", color: "#c9a84c", textTransform: "uppercase", marginBottom: "4px" }}>◈ Medina Moon Stays</div>
-          <div style={{ fontSize: "18px", letterSpacing: "1px", color: "#f0e6c8" }}>Fiche Individuelle de Police</div>
-          <div style={{ fontSize: "12px", color: "#f0e6c844" }}>Individual Police Registration Form</div>
+          <div style={{ fontSize: "18px", letterSpacing: "1px", color: "#f0e6c8" }}>Fiche de Police & Contrat de Location</div>
+          <div style={{ fontSize: "12px", color: "#f0e6c844" }}>Police Registration Form & Rental Agreement</div>
         </div>
         <div style={{ fontSize: "10px", color: "#c9a84c55", letterSpacing: "1px", textAlign: "right", lineHeight: 2 }}>
           <div>Loi n°80-14</div><div>Décret n°2.23.441</div><div>Loi n°09-08 CNDP</div>
@@ -170,7 +231,7 @@ export default function FichePolice() {
       </div>
 
       <div style={{ margin: "20px 32px", padding: "14px 18px", background: "#c9a84c08", border: "1px solid #c9a84c22", borderLeft: "3px solid #c9a84c", borderRadius: "4px", fontSize: "11px", color: "#c9a84c99", lineHeight: 1.8 }}>
-        En application de la loi n°80-14 relative aux établissements touristiques (BO du 15 octobre 2015) et du décret n°2.23.441 (août 2023), tout exploitant est tenu de faire remplir cette fiche. Données traitées conformément à la loi n°09-08 CNDP. — In accordance with Moroccan Law no. 80-14, all guests must complete this registration form.
+        En application de la loi n°80-14 et du décret n°2.23.441, tout exploitant est tenu de faire remplir cette fiche. Données traitées conformément à la loi n°09-08 CNDP. — In accordance with Moroccan Law no. 80-14, all guests must complete this registration form and sign the rental agreement.
       </div>
 
       <div style={{ padding: "0 32px 40px" }}>
@@ -186,6 +247,10 @@ export default function FichePolice() {
           <div style={{ fontSize: "10px", color: "#c9a84c55", letterSpacing: "1px", textAlign: "right", lineHeight: 2 }}>
             <div>Medina Moon Stays</div><div>Réf. hébergement touristique</div>
           </div>
+        </div>
+
+        <div style={{ margin: "32px 0 8px", padding: "10px 18px", background: "#c9a84c11", border: "1px solid #c9a84c33", borderRadius: "4px" }}>
+          <span style={{ fontSize: "12px", letterSpacing: "3px", color: "#c9a84c", textTransform: "uppercase" }}>Partie 1 — Fiche Individuelle de Police / Police Registration</span>
         </div>
 
         <SectionTitle>Identité du voyageur / Guest Identity</SectionTitle>
@@ -239,17 +304,51 @@ export default function FichePolice() {
           <label style={{ display: "flex", gap: "14px", alignItems: "flex-start", cursor: "pointer" }}>
             <input type="checkbox" checked={form.consent_cndp} onChange={e => set("consent_cndp", e.target.checked)} style={{ marginTop: "3px", accentColor: "#c9a84c", width: "16px", height: "16px", flexShrink: 0 }} />
             <span style={{ fontSize: "12px", color: "#f0e6c8bb", lineHeight: 1.7 }}>
-              Je consens au traitement de mes données personnelles à des fins de déclaration auprès des autorités marocaines (DGSN), conformément à la loi n°09-08 relative à la protection des données à caractère personnel sous le contrôle de la CNDP. Données conservées 2 ans.
-              <br/><span style={{ color: "#f0e6c866", fontSize: "11px" }}>I consent to the processing of my personal data for declaration to Moroccan authorities (DGSN) under Law no. 09-08 / CNDP supervision. Data retained 2 years.</span>
+              Je consens au traitement de mes données personnelles à des fins de déclaration auprès des autorités marocaines (DGSN), conformément à la loi n°09-08 CNDP. Données conservées 2 ans.
+              <br /><span style={{ color: "#f0e6c866", fontSize: "11px" }}>I consent to the processing of my personal data for declaration to Moroccan authorities (DGSN) under Law no. 09-08 / CNDP. Data retained 2 years.</span>
             </span>
           </label>
         </div>
 
-        <SectionTitle>Signature</SectionTitle>
+        <SectionTitle>Signature — Fiche de Police</SectionTitle>
         <div style={{ marginBottom: "8px", fontSize: "12px", color: "#f0e6c866", lineHeight: 1.7 }}>En signant, je certifie l'exactitude des informations fournies. — By signing, I certify the accuracy of the information provided.</div>
         <div style={{ border: `1px solid ${errors.signature ? "#c9a84c88" : "#c9a84c22"}`, borderRadius: "6px", padding: "16px", background: "#0f0e0c" }}>
-          <SignaturePad onSign={setSignature} signed={!!signature} />
+          <SignaturePad onSign={setSignature} signed={!!signature} label="Signez ici — Fiche de police / Sign here — Police form" />
           {errors.signature && <div style={{ color: "#c9a84c", fontSize: "11px", marginTop: "8px" }}>⚠ Signature requise / Signature required</div>}
+        </div>
+
+        <div style={{ margin: "40px 0 8px", padding: "10px 18px", background: "#c9a84c11", border: "1px solid #c9a84c33", borderRadius: "4px" }}>
+          <span style={{ fontSize: "12px", letterSpacing: "3px", color: "#c9a84c", textTransform: "uppercase" }}>Partie 2 — Contrat de Location / Rental Agreement</span>
+        </div>
+
+        <div style={{ margin: "16px 0", padding: "20px", background: "#0f0e0c", border: "1px solid #c9a84c22", borderRadius: "6px", fontSize: "12px", color: "#f0e6c8aa", lineHeight: 2 }}>
+          <div style={{ fontSize: "13px", color: "#c9a84c", letterSpacing: "1px", marginBottom: "12px", fontWeight: "bold" }}>Conditions générales — General Terms</div>
+          <div>• Check-in à partir de <strong style={{ color: "#f0e6c8" }}>15h00</strong> — Check-out avant <strong style={{ color: "#f0e6c8" }}>11h00</strong></div>
+          <div>• Capacité maximale respectée — Maximum occupancy must be respected</div>
+          <div>• Pas de fêtes ni d'événements sans autorisation écrite — No parties without prior written approval</div>
+          <div>• Non-fumeur à l'intérieur — No smoking inside the property</div>
+          <div>• Silence entre 22h00 et 08h00 — Quiet hours 10 PM – 8 AM</div>
+          <div>• Logement rendu propre à l'état initial — Property returned in clean condition</div>
+          <div>• Caution remboursée sous 48h après départ si aucun dommage — Security deposit returned within 48h if no damage</div>
+          <div>• En cas de dégradation, le locataire est responsable des frais — Guest is liable for any damages</div>
+          <div style={{ marginTop: "12px", fontSize: "11px", color: "#f0e6c855" }}>Contrat régi par le droit marocain — Loi n°94-14.<br />Agreement governed by Moroccan law — Law no. 94-14.</div>
+        </div>
+
+        <div style={{ margin: "16px 0", padding: "16px 20px", background: "#c9a84c06", border: `1px solid ${errors.consent_rental ? "#c9a84c88" : "#c9a84c22"}`, borderRadius: "4px" }}>
+          <label style={{ display: "flex", gap: "14px", alignItems: "flex-start", cursor: "pointer" }}>
+            <input type="checkbox" checked={form.consent_rental} onChange={e => set("consent_rental", e.target.checked)} style={{ marginTop: "3px", accentColor: "#c9a84c", width: "16px", height: "16px", flexShrink: 0 }} />
+            <span style={{ fontSize: "12px", color: "#f0e6c8bb", lineHeight: 1.7 }}>
+              J'ai lu et j'accepte les conditions générales du contrat de location ci-dessus.
+              <br /><span style={{ color: "#f0e6c866", fontSize: "11px" }}>I have read and accept the rental agreement terms above.</span>
+            </span>
+          </label>
+        </div>
+
+        <SectionTitle>Signature — Contrat de Location / Rental Agreement</SectionTitle>
+        <div style={{ marginBottom: "8px", fontSize: "12px", color: "#f0e6c866", lineHeight: 1.7 }}>Signature précédée de "Lu et approuvé" — Signed as "Read and approved"</div>
+        <div style={{ border: `1px solid ${errors.signatureRental ? "#c9a84c88" : "#c9a84c22"}`, borderRadius: "6px", padding: "16px", background: "#0f0e0c" }}>
+          <SignaturePad onSign={setSignatureRental} signed={!!signatureRental} label="Lu et approuvé — Read and approved" />
+          {errors.signatureRental && <div style={{ color: "#c9a84c", fontSize: "11px", marginTop: "8px" }}>⚠ Signature requise / Signature required</div>}
         </div>
 
         <div style={{ marginTop: "16px", fontSize: "12px", color: "#f0e6c855", display: "flex", justifyContent: "flex-end", letterSpacing: "1px" }}>
@@ -258,12 +357,18 @@ export default function FichePolice() {
 
         {Object.keys(errors).length > 0 && (
           <div style={{ marginTop: "20px", padding: "12px 16px", background: "#c9a84c08", border: "1px solid #c9a84c44", borderRadius: "4px", fontSize: "12px", color: "#c9a84c" }}>
-            ⚠ Veuillez compléter tous les champs obligatoires et apposer votre signature.
+            ⚠ Veuillez compléter tous les champs obligatoires et apposer vos deux signatures.
           </div>
         )}
 
-        <button onClick={() => { if (validate()) setSubmitted(true); }} style={{ marginTop: "28px", width: "100%", background: "linear-gradient(135deg, #c9a84c, #a8872e)", border: "none", borderRadius: "4px", color: "#080807", padding: "16px", fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, cursor: "pointer" }}>
-          Soumettre la Fiche de Police / Submit Registration
+        {sendError && (
+          <div style={{ marginTop: "16px", padding: "12px 16px", background: "#ff000011", border: "1px solid #ff000044", borderRadius: "4px", fontSize: "12px", color: "#ff6666" }}>
+            ⚠ Erreur d'envoi. Veuillez réessayer ou contacter Medina Moon Stays directement.
+          </div>
+        )}
+
+        <button onClick={handleSubmit} disabled={sending} style={{ marginTop: "28px", width: "100%", background: sending ? "#888" : "linear-gradient(135deg, #c9a84c, #a8872e)", border: "none", borderRadius: "4px", color: "#080807", padding: "16px", fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, cursor: sending ? "not-allowed" : "pointer" }}>
+          {sending ? "Envoi en cours..." : "Soumettre — Fiche de Police & Contrat / Submit"}
         </button>
 
         <div style={{ marginTop: "20px", textAlign: "center", fontSize: "10px", color: "#f0e6c833", letterSpacing: "1px", lineHeight: 2 }}>
