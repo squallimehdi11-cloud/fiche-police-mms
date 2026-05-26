@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import emailjs from "@emailjs/browser";
 
+emailjs.init("USFzBaZJ2xx3Nog9u");
+
 const EMAILJS_SERVICE_ID = "service_3lpshw8";
 const EMAILJS_TEMPLATE_ID = "flgrgnn";
-const EMAILJS_PUBLIC_KEY = "USFzBaZJ2xx3Nog9u";
 
 const NATIONALITIES = [
   "Marocaine", "Française", "Espagnole", "Italienne", "Britannique", "Américaine",
@@ -184,8 +185,7 @@ export default function FichePolice() {
           acte_mariage: form.acte_mariage || "N/A",
           name: `${form.prenom} ${form.nom}`,
           message: `Fiche police + contrat signés le ${new Date().toLocaleDateString("fr-MA")}`,
-        },
-        EMAILJS_PUBLIC_KEY
+        }
       );
       setSubmitted(true);
     } catch (err) {
@@ -313,15 +313,12 @@ export default function FichePolice() {
           <div style={{ margin: "24px 0", padding: "20px", background: "#c9a84c08", border: `1px solid ${errors.statut_marital || errors.statut_marital_blocked ? "#c9a84c88" : "#c9a84c33"}`, borderRadius: "6px" }}>
             <div style={{ fontSize: "11px", letterSpacing: "3px", color: "#c9a84c", textTransform: "uppercase", marginBottom: "16px" }}>◈ Statut marital / Marital Status</div>
             <div style={{ fontSize: "12px", color: "#f0e6c877", marginBottom: "16px", lineHeight: 1.7 }}>
-              Pour les ressortissants marocains, les couples non mariés ne sont pas acceptés conformément à la loi marocaine. Merci de préciser votre statut. — For Moroccan nationals, unmarried couples are not accepted under Moroccan law. Please specify your status..
+              Pour les ressortissants marocains, les couples non mariés ne sont pas acceptés conformément à la loi marocaine. — For Moroccan nationals, unmarried couples are not accepted under Moroccan law.
             </div>
             <Field label="Statut marital" labelEn="Marital status" required>
               <select value={form.statut_marital} onChange={e => set("statut_marital", e.target.value)} style={{ ...selectStyle, ...err("statut_marital") }}>
                 <option value="">— Sélectionner —</option>
                 <option>Marié(e)</option>
-                <div style={{ marginTop: "12px", padding: "12px 16px", background: "#c9a84c08", border: "1px solid #c9a84c33", borderRadius: "4px", fontSize: "12px", color: "#c9a84c99", lineHeight: 1.7 }}>
-  📋 Merci d'avoir votre acte de mariage original avec vous à l'arrivée — il sera vérifié par notre équipe. — Please bring your original marriage certificate upon arrival, it will be verified by our team.
-</div>
                 <option>Famille / Amis</option>
                 <option>Célibataire</option>
                 <option>Autre</option>
