@@ -4,7 +4,7 @@ import emailjs from "@emailjs/browser";
 emailjs.init("USFzBaZJ2xx3Nog9u");
 
 const EMAILJS_SERVICE_ID = "service_3lpshw8";
-const EMAILJS_TEMPLATE_ID = "flgrgnn";
+const EMAILJS_TEMPLATE_ID = "template_ibsh7sj";
 
 const NATIONALITIES = [
   "Marocaine", "Française", "Espagnole", "Italienne", "Britannique", "Américaine",
