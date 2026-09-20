@@ -42,7 +42,7 @@ const FONT = "'Helvetica Neue', Arial, sans-serif";
 /* ------------------------------------------------------------------ */
 /* Image helper — resize + compress before embedding as base64        */
 /* ------------------------------------------------------------------ */
-function fileToCompressedDataURL(file, maxWidth = 1400, quality = 0.75) {
+function fileToCompressedDataURL(file, maxWidth = 1200, quality = 0.65) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
@@ -191,7 +191,7 @@ function UploadCloudIcon() {
   );
 }
 
-const MAX_COMPANIONS = 7;
+const MAX_COMPANIONS = 4;
 
 function CompanionCard({ index, companion, onFieldChange, onRemove, errors }) {
   const errStyle = (k) => errors[`companion_${index}_${k}`] ? { borderColor: "#d98f80" } : {};
@@ -211,10 +211,7 @@ function CompanionCard({ index, companion, onFieldChange, onRemove, errors }) {
           <input value={companion.prenom} onChange={e => onFieldChange("prenom", e.target.value)} style={{ ...inputStyle, ...errStyle("prenom") }} placeholder="Marie" />
         </Field>
         <Field label="Nationalité" labelEn="Nationality">
-          <select value={companion.nationalite} onChange={e => onFieldChange("nationalite", e.target.value)} style={selectStyle}>
-            <option value="">— Sélectionner —</option>
-            {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
+          <input value={companion.nationalite} onChange={e => onFieldChange("nationalite", e.target.value)} style={inputStyle} placeholder="Française" />
         </Field>
         <Field label="Type de document">
           <select value={companion.doc_type} onChange={e => onFieldChange("doc_type", e.target.value)} style={selectStyle}>
@@ -370,7 +367,7 @@ export default function FichePolice() {
     if (!form.consent_rental) e.consent_rental = true;
     if (!signature) e.signature = true;
     if (!signatureRental) e.signatureRental = true;
-    const isMoroccan = form.nationalite === "Marocaine";
+    const isMoroccan = /maroc/i.test(form.nationalite.trim());
     const isCouple = parseInt(form.nb_personnes) >= 2;
     if (isMoroccan && isCouple && !form.statut_marital) e.statut_marital = true;
     if (isMoroccan && isCouple && form.statut_marital === "Célibataire") e.statut_marital_blocked = true;
@@ -406,12 +403,6 @@ export default function FichePolice() {
           companion3_photo_recto: companions[2]?.photoRecto || "", companion3_photo_verso: companions[2]?.photoVerso || "",
           companion4_nom: companions[3]?.nom || "", companion4_prenom: companions[3]?.prenom || "",
           companion4_photo_recto: companions[3]?.photoRecto || "", companion4_photo_verso: companions[3]?.photoVerso || "",
-          companion5_nom: companions[4]?.nom || "", companion5_prenom: companions[4]?.prenom || "",
-          companion5_photo_recto: companions[4]?.photoRecto || "", companion5_photo_verso: companions[4]?.photoVerso || "",
-          companion6_nom: companions[5]?.nom || "", companion6_prenom: companions[5]?.prenom || "",
-          companion6_photo_recto: companions[5]?.photoRecto || "", companion6_photo_verso: companions[5]?.photoVerso || "",
-          companion7_nom: companions[6]?.nom || "", companion7_prenom: companions[6]?.prenom || "",
-          companion7_photo_recto: companions[6]?.photoRecto || "", companion7_photo_verso: companions[6]?.photoVerso || "",
           property: form.property,
           nom: form.nom,
           prenom: form.prenom,
@@ -514,10 +505,7 @@ export default function FichePolice() {
           <Field label="Date de naissance" labelEn="Date of birth" required><input type="date" value={form.date_naissance} onChange={e => set("date_naissance", e.target.value)} style={{ ...inputStyle, ...err("date_naissance") }} /></Field>
           <Field label="Lieu de naissance" labelEn="Place of birth"><input value={form.lieu_naissance} onChange={e => set("lieu_naissance", e.target.value)} style={inputStyle} placeholder="Paris, France" /></Field>
           <Field label="Nationalité" labelEn="Nationality" required>
-            <select value={form.nationalite} onChange={e => set("nationalite", e.target.value)} style={{ ...selectStyle, ...err("nationalite") }}>
-              <option value="">— Sélectionner —</option>
-              {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
+            <input value={form.nationalite} onChange={e => set("nationalite", e.target.value)} style={{ ...inputStyle, ...err("nationalite") }} placeholder="Française" />
           </Field>
           <Field label="Pays de résidence" labelEn="Country of residence"><input value={form.pays_residence} onChange={e => set("pays_residence", e.target.value)} style={inputStyle} placeholder="France" /></Field>
         </div>
@@ -596,7 +584,7 @@ export default function FichePolice() {
           </button>
         )}
 
-        {form.nationalite === "Marocaine" && parseInt(form.nb_personnes) >= 2 && (
+        {/maroc/i.test(form.nationalite.trim()) && parseInt(form.nb_personnes) >= 2 && (
           <div style={{ margin: "24px 0", padding: "20px", background: C.warnBg, border: `1.5px solid ${errors.statut_marital || errors.statut_marital_blocked ? "#c0392b" : C.warnBorder}`, borderRadius: "8px" }}>
             <div style={{ fontSize: "13px", fontWeight: 700, color: C.navy, marginBottom: "14px", fontFamily: FONT }}>Statut marital / Marital Status</div>
             <div style={{ fontSize: "12.5px", color: C.navySoft, marginBottom: "16px", lineHeight: 1.7, fontFamily: FONT }}>
